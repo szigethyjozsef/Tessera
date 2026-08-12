@@ -15,7 +15,7 @@ the problem seriously.
 Please **do not** open a public issue for security problems.
 
 Use GitHub's private vulnerability reporting (Security → Report a vulnerability),
-or email `<CONTACT>`.
+or email `szigethyjoco@gmail.com`.
 
 Include what you did, what happened, what you expected, and the affected version or
 commit. A proof of concept helps but is not required.
