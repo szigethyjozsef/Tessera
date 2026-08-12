@@ -20,6 +20,9 @@ pub enum VaultError {
 
     #[error("i/o error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("a vault already exists at this location")]
+    AlreadyExists,
 }
 
 pub type Result<T> = std::result::Result<T, VaultError>;
