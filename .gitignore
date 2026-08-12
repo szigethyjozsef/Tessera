@@ -1,0 +1,39 @@
+# Rust
+/target/
+**/target/
+*.pdb
+
+# Node
+node_modules/
+dist/
+dist-ssr/
+.vite/
+*.local
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# Environment and secrets — never commit these
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.keystore
+*.jks
+
+# Vault test data
+*.vault/
+test-vaults/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
