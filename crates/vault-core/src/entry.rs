@@ -64,4 +64,20 @@ impl Entry {
         self.updated_at = now;
         self.deleted_at = Some(now);
     }
+
+    pub fn set_field(&mut self, name: &str, value: &str, device_id: &str) {
+        let now = OffsetDateTime::now_utc();
+        let field = FieldValue {
+            updated_at: now,
+            value: value.to_owned(),
+        };
+        self.version += 1;
+        self.fields.insert(name.to_owned(), field);
+        self.updated_at = now;
+        self.last_modified_by = device_id.to_owned();
+    }
+
+    pub fn get_field(&self, name: &str) -> Option<&str> {
+        self.fields.get(name).map(|field| field.value.as_str())
+    }
 }
