@@ -40,3 +40,28 @@ pub struct Entry {
     pub tags: Vec<String>,
     pub favorite: bool,
 }
+
+impl Entry {
+    pub fn new(entry_type: EntryType, device_id: &str) -> Self {
+        let now = OffsetDateTime::now_utc();
+        Self {
+            id: Uuid::now_v7(),
+            version: 1,
+            created_at: now,
+            updated_at: now,
+            deleted_at: None,
+            fields: HashMap::new(),
+            tags: Vec::new(),
+            last_modified_by: device_id.to_owned(),
+            entry_type,
+            favorite: false,
+        }
+    }
+    pub fn mark_deleted(&mut self) {
+        let now = OffsetDateTime::now_utc();
+        self.version += 1;
+        self.fields.clear();
+        self.updated_at = now;
+        self.deleted_at = Some(now);
+    }
+}
