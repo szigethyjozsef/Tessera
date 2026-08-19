@@ -81,3 +81,44 @@ impl Entry {
         self.fields.get(name).map(|field| field.value.as_str())
     }
 }
+
+// Testing
+
+#[cfg(test)]
+mod tests {
+use super::*;
+
+    #[test]
+    fn new_entry_starts_at_version_one_and_is_empty() {
+        let entry = Entry::new(EntryType::Login, "test_device");
+        assert_eq!(entry.version, 1);
+        assert!(entry.fields.is_empty());
+        assert!(entry.deleted_at.is_none());
+    }
+
+    #[test]
+    fn create_and_edit_then_read_entry() {
+        let mut entry = Entry::new(EntryType::Login, "test_device");
+        entry.set_field("password", "hunter2", "test_device");
+        assert_eq!(entry.get_field("password"), Some("hunter2"));
+    }
+
+    #[test]
+    fn setting_the_same_field_twice_keeps_the_last_value() {
+        let mut entry = Entry::new(EntryType::Login, "test_device");
+        entry.set_field("password", "password1", "test_device");
+        entry.set_field("password", "password2", "test_device");
+        assert_eq!(entry.get_field("password"), Some("password2"));
+        assert_eq!(entry.version, 3);
+    }
+
+    #[test]
+    fn marking_deleted_clears_fields_and_sets_the_timestamp() {
+        let mut entry = Entry::new(EntryType::Login, "test_device");
+        entry.set_field("password", "password1", "test_device");
+        entry.mark_deleted();
+        assert!(entry.deleted_at.is_some());
+        assert!(entry.fields.is_empty());
+        assert_eq!(entry.version, 3);
+    }
+}
