@@ -9,6 +9,7 @@ mod key;
 mod manifest;
 mod vault;
 mod entry;
+mod store;
 
 pub use aead::{open, seal, unwrap_dek, wrap_dek, Sealed, NONCE_LEN, TAG_LEN};
 pub use error::{Result, VaultError};
