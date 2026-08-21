@@ -1,5 +1,5 @@
-use zeroize::{Zeroize, ZeroizeOnDrop};
 use rand_core::{OsRng, RngCore};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Length of all symmetric keys in this crate, in bytes.
 pub const KEY_LEN: usize = 32;

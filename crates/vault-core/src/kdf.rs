@@ -44,11 +44,7 @@ pub fn generate_salt() -> [u8; SALT_LEN] {
 ///
 /// The password is borrowed and never copied into an owned `String` here;
 /// the caller owns its lifetime and is responsible for zeroising it.
-pub fn derive_kek(
-    password: &[u8],
-    salt: &[u8; SALT_LEN],
-    params: KdfParams,
-) -> Result<SecretKey> {
+pub fn derive_kek(password: &[u8], salt: &[u8; SALT_LEN], params: KdfParams) -> Result<SecretKey> {
     let argon_params = Params::new(
         params.memory_kib,
         params.iterations,

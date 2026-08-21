@@ -125,7 +125,7 @@ impl Manifest {
 
         Ok(manifest)
     }
-} 
+}
 
 #[cfg(test)]
 mod tests {
@@ -149,7 +149,10 @@ mod tests {
         assert_eq!(parsed.vault_id, original.vault_id);
         assert_eq!(parsed.kdf.salt, original.kdf.salt);
         assert_eq!(parsed.wrapped_dek.nonce, original.wrapped_dek.nonce);
-        assert_eq!(parsed.wrapped_dek.ciphertext, original.wrapped_dek.ciphertext);
+        assert_eq!(
+            parsed.wrapped_dek.ciphertext,
+            original.wrapped_dek.ciphertext
+        );
         assert_eq!(parsed.kdf_params(), original.kdf_params());
     }
 

@@ -36,7 +36,13 @@ pub fn seal(key: &SecretKey, aad: &[u8], plaintext: &[u8]) -> Result<Sealed> {
     OsRng.fill_bytes(&mut nonce);
 
     let ciphertext = cipher_for(key)
-        .encrypt(XNonce::from_slice(&nonce), Payload { msg: plaintext, aad })
+        .encrypt(
+            XNonce::from_slice(&nonce),
+            Payload {
+                msg: plaintext,
+                aad,
+            },
+        )
         .map_err(|_| VaultError::Malformed)?;
 
     Ok(Sealed { nonce, ciphertext })
@@ -51,7 +57,10 @@ pub fn open(key: &SecretKey, aad: &[u8], sealed: &Sealed) -> Result<Vec<u8>> {
     cipher_for(key)
         .decrypt(
             XNonce::from_slice(&sealed.nonce),
-            Payload { msg: &sealed.ciphertext, aad },
+            Payload {
+                msg: &sealed.ciphertext,
+                aad,
+            },
         )
         .map_err(|_| VaultError::AuthenticationFailed)
 }

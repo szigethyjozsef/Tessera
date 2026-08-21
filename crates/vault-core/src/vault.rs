@@ -39,10 +39,14 @@ impl Vault {
 
         // The vault id is generated inside the manifest, so build it with a
         // placeholder AAD first, then seal against its real identity.
-        let mut manifest = Manifest::new(params, salt, &crate::aead::Sealed {
-            nonce: [0u8; crate::aead::NONCE_LEN],
-            ciphertext: Vec::new(),
-        });
+        let mut manifest = Manifest::new(
+            params,
+            salt,
+            &crate::aead::Sealed {
+                nonce: [0u8; crate::aead::NONCE_LEN],
+                ciphertext: Vec::new(),
+            },
+        );
 
         let sealed = wrap_dek(&kek, &manifest.dek_aad(), &dek)?;
         manifest.wrapped_dek.nonce = sealed.nonce;
@@ -50,7 +54,11 @@ impl Vault {
 
         write_atomic(&manifest_path, manifest.to_json()?.as_bytes())?;
 
-        Ok(Self { root: root.to_path_buf(), manifest, dek })
+        Ok(Self {
+            root: root.to_path_buf(),
+            manifest,
+            dek,
+        })
     }
 
     /// Opens an existing vault.
@@ -64,7 +72,11 @@ impl Vault {
         let kek = derive_kek(password, &manifest.kdf.salt, manifest.kdf_params())?;
         let dek = unwrap_dek(&kek, &manifest.dek_aad(), &manifest.wrapped_dek())?;
 
-        Ok(Self { root: root.to_path_buf(), manifest, dek })
+        Ok(Self {
+            root: root.to_path_buf(),
+            manifest,
+            dek,
+        })
     }
 
     /// Re-wraps the data-encryption key under a new master password.
@@ -135,8 +147,8 @@ mod tests {
     };
 
     fn temp_root(tag: &str) -> PathBuf {
-        let path = std::env::temp_dir()
-            .join(format!("tessera-test-{tag}-{}", uuid::Uuid::now_v7()));
+        let path =
+            std::env::temp_dir().join(format!("tessera-test-{tag}-{}", uuid::Uuid::now_v7()));
         fs::create_dir_all(&path).unwrap();
         path
     }
