@@ -41,7 +41,7 @@ pub struct KdfSection {
     pub memory_kib: u32,
     pub iterations: u32,
     pub parallelism: u32,
-    #[serde(with = "b64_array")]
+    #[serde(with = "crate::b64::b64_array")]
     pub salt: [u8; SALT_LEN],
 }
 
@@ -49,9 +49,9 @@ pub struct KdfSection {
 #[serde(rename_all = "camelCase")]
 pub struct SealedSection {
     pub algorithm: String,
-    #[serde(with = "b64_array")]
+    #[serde(with = "crate::b64::b64_array")]
     pub nonce: [u8; NONCE_LEN],
-    #[serde(with = "b64_vec")]
+    #[serde(with = "crate::b64::b64_vec")]
     pub ciphertext: Vec<u8>,
 }
 
@@ -125,46 +125,7 @@ impl Manifest {
 
         Ok(manifest)
     }
-}
-
-mod b64_array {
-    use base64::{engine::general_purpose::STANDARD, Engine};
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub fn serialize<S, const N: usize>(bytes: &[u8; N], s: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        s.serialize_str(&STANDARD.encode(bytes))
-    }
-
-    pub fn deserialize<'de, D, const N: usize>(d: D) -> Result<[u8; N], D::Error>
-    where
-        D: Deserializer<'de>,
-    {
-        let encoded = String::deserialize(d)?;
-        let decoded = STANDARD
-            .decode(&encoded)
-            .map_err(serde::de::Error::custom)?;
-        decoded
-            .try_into()
-            .map_err(|_| serde::de::Error::custom("unexpected byte length"))
-    }
-}
-
-mod b64_vec {
-    use base64::{engine::general_purpose::STANDARD, Engine};
-    use serde::{Deserialize, Deserializer, Serializer};
-
-    pub fn serialize<S: Serializer>(bytes: &[u8], s: S) -> Result<S::Ok, S::Error> {
-        s.serialize_str(&STANDARD.encode(bytes))
-    }
-
-    pub fn deserialize<'de, D: Deserializer<'de>>(d: D) -> Result<Vec<u8>, D::Error> {
-        let encoded = String::deserialize(d)?;
-        STANDARD.decode(&encoded).map_err(serde::de::Error::custom)
-    }
-}
+} 
 
 #[cfg(test)]
 mod tests {
