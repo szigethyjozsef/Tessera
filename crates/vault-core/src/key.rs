@@ -20,8 +20,8 @@ impl SecretKey {
 
     /// Generates a new key from the operating system CSPRNG.
     pub fn generate() -> Self {
-        let mut bytes = [0u8; KEY_LEN];
-        OsRng.fill_bytes(&mut bytes);
+        let mut bytes = [0u8; KEY_LEN]; // Empty line of 32 zeros
+        OsRng.fill_bytes(&mut bytes); // OS default generator fills it up
         Self { bytes }
     }
 

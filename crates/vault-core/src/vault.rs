@@ -52,7 +52,7 @@ impl Vault {
         manifest.wrapped_dek.nonce = sealed.nonce;
         manifest.wrapped_dek.ciphertext = sealed.ciphertext;
 
-        write_atomic(&manifest_path, manifest.to_json()?.as_bytes())?;
+        crate::store::write_atomic(&manifest_path, manifest.to_json()?.as_bytes())?;
 
         Ok(Self {
             root: root.to_path_buf(),
@@ -95,7 +95,7 @@ impl Vault {
         self.manifest.wrapped_dek.nonce = sealed.nonce;
         self.manifest.wrapped_dek.ciphertext = sealed.ciphertext;
 
-        write_atomic(
+        crate::store::write_atomic(
             &self.root.join(MANIFEST_FILE),
             self.manifest.to_json()?.as_bytes(),
         )
@@ -117,23 +117,6 @@ impl Vault {
     pub(crate) fn entries_dir(&self) -> PathBuf {
         self.root.join(ENTRIES_DIR)
     }
-}
-
-/// Writes to a temporary file, flushes it, then renames over the target.
-///
-/// A crash mid-write must never leave a half-written manifest: either the old
-/// file survives intact or the new one is complete.
-fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
-    use std::io::Write;
-
-    let tmp = path.with_extension("tmp");
-    {
-        let mut file = fs::File::create(&tmp)?;
-        file.write_all(bytes)?;
-        file.sync_all()?;
-    }
-    fs::rename(&tmp, path)?;
-    Ok(())
 }
 
 #[cfg(test)]

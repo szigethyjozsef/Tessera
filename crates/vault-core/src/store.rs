@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
+use std::path::{Path, PathBuf};
+use std::fs;
 
 use crate::aead::{open, seal, Sealed, NONCE_LEN};
 use crate::error::{Result, VaultError};
@@ -43,6 +45,45 @@ fn open_entry(dek: &SecretKey, vault_id: Uuid, record: &EntryRecord) -> Result<E
     let aad = entry_aad(vault_id, record.id, record.format_version);
     let plaintext = open(dek, &aad, &sealed)?;
     serde_json::from_slice(&plaintext).map_err(|_| VaultError::Malformed)
+}
+
+fn entry_path(entries_dir: &Path, id: Uuid) -> PathBuf {
+    entries_dir.join(format!("{id}.json"))
+}
+
+pub(crate) fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+    use std::io::Write;
+
+    let tmp = path.with_extension("tmp");
+    {
+        let mut file = fs::File::create(&tmp)?;
+        file.write_all(bytes)?;
+        file.sync_all()?;
+    }
+    fs::rename(&tmp, path)?;
+    Ok(())
+}
+
+pub(crate) fn write_entry(
+    entries_dir: &Path,
+    dek: &SecretKey,
+    vault_id: Uuid,
+    entry: &Entry,
+) -> Result<()> {
+    let record = seal_entry(dek, vault_id, entry)?;
+    let json = serde_json::to_string_pretty(&record).map_err(|_| VaultError::Malformed)?;
+    write_atomic(&entry_path(entries_dir, entry.id), json.as_bytes())
+}
+
+pub(crate) fn read_entry(
+    entries_dir: &Path,
+    dek: &SecretKey,
+    vault_id: Uuid,
+    id: Uuid,
+) -> Result<Entry> {
+    let json = fs::read_to_string(entry_path(entries_dir, id))?;
+    let record: EntryRecord = serde_json::from_str(&json).map_err(|_| VaultError::Malformed)?;
+    open_entry(dek, vault_id, &record)
 }
 
 #[cfg(test)]
