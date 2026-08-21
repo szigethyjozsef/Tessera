@@ -1,11 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use uuid::timestamp::UUID_TICKS_BETWEEN_EPOCHS;
 
-use crate::aead::NONCE_LEN;
+use crate::aead::{open, seal, Sealed, NONCE_LEN};
 use crate::error::{Result, VaultError};
 use crate::manifest::FORMAT_VERSION;
-use crate::seal;
 use crate::Entry;
 use crate::SecretKey;
 
@@ -33,6 +31,15 @@ fn seal_entry(dek: &SecretKey, vault_id: Uuid, entry: &Entry) -> Result<EntryRec
         format_version: FORMAT_VERSION,
         nonce: sealed.nonce,
         ciphertext: sealed.ciphertext
-
     })
+}
+
+fn open_entry(dek: &SecretKey, vault_id: Uuid, record: &EntryRecord) -> Result<Entry> {
+    let sealed = Sealed {
+        nonce: record.nonce,
+        ciphertext: record.ciphertext.clone(),
+    };
+    let aad = entry_aad(vault_id, record.id, record.format_version);
+    let plaintext = open(dek, &aad, &sealed)?;
+    serde_json::from_slice(&plaintext).map_err(|_| VaultError::Malformed)
 }
