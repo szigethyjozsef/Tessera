@@ -86,6 +86,55 @@ pub(crate) fn read_entry(
     open_entry(dek, vault_id, &record)
 }
 
+pub(crate) fn list_entries(
+    entries_dir: &Path,
+    dek: &SecretKey,
+    vault_id: Uuid,
+) -> Result<Vec<Entry>> {
+    let mut entries = Vec::new();
+
+    for dir_entry in fs::read_dir(entries_dir)? {
+        let path = dir_entry?.path();
+
+        if path.extension().and_then(|ext| ext.to_str()) != Some("json") {
+            continue;
+        }
+
+        let Some(id) = path
+            .file_stem()
+            .and_then(|stem| stem.to_str())
+            .and_then(|stem| Uuid::parse_str(stem).ok())
+        else {
+            continue;
+        };
+
+        if let Ok(entry) = read_entry(entries_dir, dek, vault_id, id) {
+            entries.push(entry);
+        }
+    }
+
+    Ok(entries)
+}
+
+pub(crate) fn delete_entry(
+    entries_dir: &Path,
+    dek: &SecretKey,
+    vault_id: Uuid,
+    id: Uuid,
+    device_id: &str,
+) -> Result<()> {
+    let mut entry = read_entry(entries_dir, dek, vault_id, id)?;
+
+    if entry.deleted_at.is_some() {
+        return Ok(());
+    }
+
+    entry.mark_deleted();
+    entry.last_modified_by = device_id.to_owned();
+
+    write_entry(entries_dir, dek, vault_id, &entry)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -155,5 +204,56 @@ mod tests {
         let raw = fs::read_to_string(entry_path(&dir, entry.id)).unwrap();
         assert!(!raw.contains("hunter2"));
         assert!(!raw.contains("password"));
+    }
+
+        #[test]
+    fn listing_returns_every_written_entry() {
+        let dir = temp_dir("list");
+        let dek = SecretKey::generate();
+        let vault_id = Uuid::now_v7();
+
+        let first = sample_entry();
+        let second = sample_entry();
+        write_entry(&dir, &dek, vault_id, &first).unwrap();
+        write_entry(&dir, &dek, vault_id, &second).unwrap();
+
+        let listed = list_entries(&dir, &dek, vault_id).unwrap();
+
+        assert_eq!(listed.len(), 2);
+    }
+
+    #[test]
+    fn deleting_keeps_the_record_as_a_tombstone() {
+        let dir = temp_dir("delete");
+        let dek = SecretKey::generate();
+        let vault_id = Uuid::now_v7();
+        let entry = sample_entry();
+
+        write_entry(&dir, &dek, vault_id, &entry).unwrap();
+        delete_entry(&dir, &dek, vault_id, entry.id, "test-device").unwrap();
+
+        let tombstone = read_entry(&dir, &dek, vault_id, entry.id).unwrap();
+
+        assert!(tombstone.deleted_at.is_some());
+        assert!(tombstone.fields.is_empty());
+        assert_eq!(tombstone.version, entry.version + 1);
+        assert!(entry_path(&dir, entry.id).exists());
+    }
+
+    #[test]
+    fn deleting_twice_does_not_bump_the_version_again() {
+        let dir = temp_dir("delete-twice");
+        let dek = SecretKey::generate();
+        let vault_id = Uuid::now_v7();
+        let entry = sample_entry();
+
+        write_entry(&dir, &dek, vault_id, &entry).unwrap();
+        delete_entry(&dir, &dek, vault_id, entry.id, "test-device").unwrap();
+        let after_first = read_entry(&dir, &dek, vault_id, entry.id).unwrap();
+
+        delete_entry(&dir, &dek, vault_id, entry.id, "test-device").unwrap();
+        let after_second = read_entry(&dir, &dek, vault_id, entry.id).unwrap();
+
+        assert_eq!(after_first.version, after_second.version);
     }
 }
