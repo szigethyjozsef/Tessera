@@ -79,9 +79,9 @@ Tessera is **open core**:
 
 ## Roadmap
 
-- [ ] **Phase 0** — Specification, threat model, ADRs
-- [ ] **Phase 1** — Crypto core with test vectors
-- [ ] **Phase 2** — Vault layer: entries, versioning, tombstones, migrations
+- [x] **Phase 0** — Specification, threat model, ADRs
+- [x] **Phase 1** — Crypto core with test vectors
+- [x] **Phase 2** — Vault layer: entries, versioning, tombstones, migrations
 - [ ] **Phase 3** — Desktop UI, auto-lock, generator
 - [ ] **Phase 4** — TOTP, password history
 - [ ] **Phase 5** — Sync over user-owned storage
