@@ -6,6 +6,8 @@ use crate::error::{Result, VaultError};
 use crate::kdf::{derive_kek, generate_salt, KdfParams};
 use crate::key::SecretKey;
 use crate::manifest::Manifest;
+use crate::entry::{Entry, EntryType};
+use uuid::Uuid;
 
 const MANIFEST_FILE: &str = "vault.json";
 const ENTRIES_DIR: &str = "entries";
@@ -104,6 +106,62 @@ impl Vault {
     /// True if this vault was created with weaker parameters than the current baseline.
     pub fn needs_kdf_upgrade(&self) -> bool {
         self.manifest.kdf_params().memory_kib < KdfParams::CURRENT.memory_kib
+    }
+
+        /// Creates a new entry and writes it to disk.
+    pub fn create_entry(&self, entry_type: EntryType, device_id: &str) -> Result<Entry> {
+        let entry = Entry::new(entry_type, device_id);
+        self.save_entry(&entry)?;
+        Ok(entry)
+    }
+
+    /// Writes an entry, overwriting any existing record with the same id.
+    pub fn save_entry(&self, entry: &Entry) -> Result<()> {
+        crate::store::write_entry(
+            &self.entries_dir(),
+            &self.dek,
+            self.manifest.vault_id,
+            entry,
+        )
+    }
+
+    /// Reads a single entry by id, including tombstones.
+    pub fn get_entry(&self, id: Uuid) -> Result<Entry> {
+        crate::store::read_entry(
+            &self.entries_dir(),
+            &self.dek,
+            self.manifest.vault_id,
+            id,
+        )
+    }
+
+    /// Lists all live entries, hiding tombstones.
+    pub fn list_entries(&self) -> Result<Vec<Entry>> {
+        let mut entries = self.list_all_entries()?;
+        entries.retain(|entry| entry.deleted_at.is_none());
+        Ok(entries)
+    }
+
+    /// Lists every record, tombstones included.
+    ///
+    /// Sync needs to see deletions; the user interface does not.
+    pub fn list_all_entries(&self) -> Result<Vec<Entry>> {
+        crate::store::list_entries(
+            &self.entries_dir(),
+            &self.dek,
+            self.manifest.vault_id,
+        )
+    }
+
+    /// Turns an entry into a tombstone.
+    pub fn delete_entry(&self, id: Uuid, device_id: &str) -> Result<()> {
+        crate::store::delete_entry(
+            &self.entries_dir(),
+            &self.dek,
+            self.manifest.vault_id,
+            id,
+            device_id,
+        )
     }
 
     pub fn manifest(&self) -> &Manifest {
