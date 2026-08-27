@@ -121,4 +121,39 @@ mod tests {
 
         assert!(open_entry(&dek, other_vault_id, &record).is_err());
     }
+
+        fn temp_dir(tag: &str) -> PathBuf {
+        let path = std::env::temp_dir()
+            .join(format!("tessera-store-{tag}-{}", Uuid::now_v7()));
+        fs::create_dir_all(&path).unwrap();
+        path
+    }
+
+    #[test]
+    fn entry_written_to_disk_can_be_read_back() {
+        let dir = temp_dir("roundtrip");
+        let dek = SecretKey::generate();
+        let vault_id = Uuid::now_v7();
+        let entry = sample_entry();
+
+        write_entry(&dir, &dek, vault_id, &entry).unwrap();
+        let recovered = read_entry(&dir, &dek, vault_id, entry.id).unwrap();
+
+        assert_eq!(recovered.id, entry.id);
+        assert_eq!(recovered.get_field("password"), Some("hunter2"));
+    }
+
+    #[test]
+    fn entry_file_does_not_contain_the_plaintext_password() {
+        let dir = temp_dir("no-leak");
+        let dek = SecretKey::generate();
+        let vault_id = Uuid::now_v7();
+        let entry = sample_entry();
+
+        write_entry(&dir, &dek, vault_id, &entry).unwrap();
+
+        let raw = fs::read_to_string(entry_path(&dir, entry.id)).unwrap();
+        assert!(!raw.contains("hunter2"));
+        assert!(!raw.contains("password"));
+    }
 }
